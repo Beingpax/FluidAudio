@@ -285,13 +285,15 @@ public final class AsrManager {
         try await initializeDecoderState(decoderState: &decoderState)
 
         let decoder = TdtDecoder(config: config)
-        return try await decoder.decode(
+        let result = try await decoder.decode(
             encoderOutput: encoderOutput,
             encoderSequenceLength: encoderSequenceLength,
             decoderModel: decoderModel!,
             jointModel: jointModel!,
-            decoderState: &decoderState
+            decoderState: &decoderState,
+            collectStats: config.enableDebug
         )
+        return result.tokens
     }
 
     public func transcribe(_ audioSamples: [Float]) async throws -> ASRResult {

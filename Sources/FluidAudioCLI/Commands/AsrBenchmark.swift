@@ -101,20 +101,35 @@ public class ASRBenchmark {
 
         for (index, audioFile) in filesToProcess.enumerated() {
             do {
+                print("\n🎵 Processing file \(index + 1)/\(filesToProcess.count): \(audioFile.fileName)")
+                
                 if config.debugMode {
                     logger.info("Processing file \(index + 1)/\(filesToProcess.count): \(audioFile.fileName)")
                 }
 
-                if config.debugMode && index > 0 {
-                    logger.info("   🔍 Processing file \(index + 1)")
-                }
-
                 let result = try await processLibriSpeechFile(asrManager: asrManager, file: audioFile)
                 results.append(result)
+                
+                // Print progress with WER and RTFx for each file
+                let wer = result.metrics.wer * 100
+                let rtfx = result.rtfx
+                print("   ✅ Completed: WER=\(String(format: "%.1f", wer))%, RTFx=\(String(format: "%.1f", rtfx))x")
 
             } catch {
                 logger.error("Failed to process \(audioFile.fileName): \(error)")
-                print("ERROR: Failed to process \(audioFile.fileName): \(error)")
+                print("   ❌ ERROR: Failed to process \(audioFile.fileName)")
+                print("      Error: \(error)")
+                
+                // Add more detailed error information
+                if let asrError = error as? ASRError {
+                    print("      ASR Error details: \(asrError)")
+                }
+                
+                // In debug mode, show stack trace
+                if config.debugMode {
+                    print("      Stack trace:")
+                    Thread.callStackSymbols.forEach { print("      \($0)") }
+                }
             }
         }
 
@@ -123,10 +138,12 @@ public class ASRBenchmark {
 
     /// Process a single LibriSpeech file
     private func processLibriSpeechFile(asrManager: AsrManager, file: LibriSpeechFile) async throws -> ASRBenchmarkResult {
+        print("      Loading audio file: \(file.audioPath.lastPathComponent)")
         let startTime = Date()
 
         let audioSamples = try await AudioProcessor.loadAudioFile(path: file.audioPath.path)
         let audioLength = TimeInterval(audioSamples.count) / 16000.0
+        print("      Audio loaded: \(audioSamples.count) samples (\(String(format: "%.1f", audioLength))s)")
 
         let asrResult = try await transcribeAudio(asrManager: asrManager, audioSamples: audioSamples)
 
@@ -372,6 +389,9 @@ private func editDistance<T: Equatable>(_ seq1: [T], _ seq2: [T]) -> EditDistanc
 @available(macOS 13.0, iOS 16.0, *)
 extension ASRBenchmark {
     public static func runASRBenchmark(arguments: [String]) async {
+        print("DEBUG: Inside runASRBenchmark")
+        print("DEBUG: Received arguments: \(arguments)")
+        
         var subset = "test-clean"
         var maxFiles: Int?
         var outputFile = "asr_benchmark_results.json"
@@ -433,7 +453,6 @@ extension ASRBenchmark {
             tdtConfig: TdtConfig(
                 durations: [0, 1, 2, 3, 4],
                 includeTokenDuration: true,
-                includeDurationConfidence: false,
                 maxSymbolsPerStep: 3
             )
         )

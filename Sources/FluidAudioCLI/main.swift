@@ -52,8 +52,10 @@
             await VadBenchmark.runVadBenchmark(arguments: Array(arguments.dropFirst(2)))
         case "asr-benchmark":
             print("DEBUG: asr-benchmark command received")
+            print("DEBUG: Arguments: \(Array(arguments.dropFirst(2)))")
             if #available(macOS 13.0, *) {
                 print("DEBUG: macOS version check passed")
+                print("DEBUG: About to call ASRBenchmark.runASRBenchmark")
                 await ASRBenchmark.runASRBenchmark(arguments: Array(arguments.dropFirst(2)))
             } else {
                 print("❌ ASR benchmark requires macOS 13.0 or later")
